@@ -1,0 +1,71 @@
+{
+  "name": "github-analyzer",
+  "version": "1.0.0",
+  "description": "GitHub仓库AI智能分析器",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:dev": "electron .",
+    "electron:build": "vite build && electron-builder",
+    "electron:build:win": "vite build && electron-builder --win",
+    "electron:build:dir": "vite build && electron-builder --dir"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "element-plus": "^2.4.0",
+    "@element-plus/icons-vue": "^2.3.1",
+    "pinia": "^2.1.0",
+    "vue": "^3.3.0",
+    "vue-router": "^4.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "vite": "^5.0.0"
+  },
+  "build": {
+    "appId": "com.github-analyzer.app",
+    "productName": "GitHub仓库分析器",
+    "asar": true,
+    "directories": {
+      "output": "dist-electron",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/.bin"
+    ],
+    "extraResources": [
+      {
+        "from": "../backend/dist/backend.exe",
+        "to": "backend.exe"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": ["x64"]
+        }
+      ],
+      "sign": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "GitHub仓库分析器"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    }
+  }
+}

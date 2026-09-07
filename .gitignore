@@ -1,0 +1,59 @@
+# ====================
+# Python
+# ====================
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+
+# ====================
+# IDE
+# ====================
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ====================
+# Backend runtime data
+# ====================
+backend/data/*.db
+
+# ====================
+# Backend build artifacts
+# ====================
+backend/build/
+backend/dist/
+backend/*.spec
+backend/rthooks/
+
+# ====================
+# Frontend
+# ====================
+frontend/node_modules/
+frontend/dist/
+frontend/dist-electron/
+frontend/*.asar
+
+# ====================
+# Environment files
+# ====================
+.env
+!.env.example
+.env.development
+.env.production
+
+# ====================
+# OS
+# ====================
+.DS_Store
+Thumbs.db
+
+# ====================
+# Uploads
+# ====================
+.uploads/
