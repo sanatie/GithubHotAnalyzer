@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Query
 from loguru import logger
@@ -8,6 +9,19 @@ from app.services.github_service import _get_headers, _request_with_retry
 from app.config import GITHUB_API_BASE_URL
 
 router = APIRouter()
+
+# 各周期的时间窗口（按仓库创建时间过滤，以近似该周期的热点项目）
+# daily 门槛最低，因为刚创建的仓库星数普遍较少；monthly 窗口较宽、门槛最高
+SINCE_WINDOW_DAYS = {
+    "daily": 3,
+    "weekly": 7,
+    "monthly": 30,
+}
+SINCE_MIN_STARS = {
+    "daily": 60,
+    "weekly": 500,
+    "monthly": 1000,
+}
 
 
 @router.get("", response_model=TrendingResponse)
@@ -26,6 +40,14 @@ async def get_trending(
     返回按 Star 数降序排列的热门项目列表
     """
     query = "stars:>1000"
+
+    # 用仓库创建时间窗口区分各周期，使不同周期的榜单产生差异
+    if since in SINCE_WINDOW_DAYS:
+        days = SINCE_WINDOW_DAYS[since]
+        min_stars = SINCE_MIN_STARS.get(since, 500)
+        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        query = f"stars:>{min_stars} created:>{cutoff}"
+
     if language:
         query += f" language:{language}"
 
@@ -58,6 +80,7 @@ async def get_trending(
                 open_issues_count=item.get("open_issues_count", 0),
                 watchers_count=item.get("watchers_count", 0),
                 avatar_url=item.get("owner", {}).get("avatar_url", ""),
+                created_at=item.get("created_at"),
                 topics=item.get("topics", []),
             ))
 

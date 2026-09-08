@@ -78,6 +78,12 @@ async def test_ai_connection(body: AIConfigTestRequest):
         logger.info("Using saved API key for test")
 
     url = f"{body.api_base_url.rstrip('/')}/chat/completions"
+    if any(ord(c) > 127 for c in api_key):
+        return AIConfigTestResponse(
+            success=False,
+            message="API Key 配置不正确（混入了中文或特殊字符），请填写真实的 API Key",
+            latency_ms=0,
+        )
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",

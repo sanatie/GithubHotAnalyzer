@@ -58,6 +58,8 @@ def _build_chat_prompt(query: str) -> str:
 
 
 async def _call_ai(prompt: str) -> dict:
+    if any(ord(c) > 127 for c in config.AI_API_KEY):
+        return {"error": "AI API Key 配置不正确（混入了中文或特殊字符），请在设置页面填写正确的 API Key"}
     headers = {
         "Authorization": f"Bearer {config.AI_API_KEY}",
         "Content-Type": "application/json",

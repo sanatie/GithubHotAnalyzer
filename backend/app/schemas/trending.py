@@ -16,6 +16,7 @@ class TrendingItem(BaseModel):
     open_issues_count: int = Field(0, ge=0, description="开放 Issue 数量")
     watchers_count: int = Field(0, ge=0, description="观察者数量")
     avatar_url: Optional[str] = Field("", description="所有者头像 URL")
+    created_at: Optional[str] = Field(None, description="仓库创建时间")
     topics: Optional[List[str]] = Field(default_factory=list, description="主题标签")
 
 

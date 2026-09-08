@@ -3,6 +3,17 @@
     <!-- Filter Bar -->
     <div class="filter-bar">
       <div class="filter-left">
+        <div class="since-tabs">
+          <button
+            v-for="opt in sinceOptions"
+            :key="opt.value"
+            class="since-tab"
+            :class="{ active: selectedSince === opt.value }"
+            @click="selectedSince = opt.value; fetchTrending()"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
         <select v-model="selectedLanguage" class="filter-select" @change="fetchTrending">
           <option value="">All Languages</option>
           <option v-for="lang in languages" :key="lang" :value="lang">{{ lang }}</option>
@@ -49,6 +60,53 @@
 
     <!-- Data Content -->
     <template v-else>
+      <!-- Summary / Visualization Panel -->
+      <div class="viz-panel">
+        <div class="summary-cards">
+          <div class="summary-card">
+            <span class="summary-label">总 Star</span>
+            <span class="summary-value">{{ formatNumber(totalStars) }}</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">总 Fork</span>
+            <span class="summary-value">{{ formatNumber(totalForks) }}</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">平均 Star</span>
+            <span class="summary-value">{{ formatNumber(avgStars) }}</span>
+          </div>
+          <div class="summary-card">
+            <span class="summary-label">上榜语言</span>
+            <span class="summary-value">{{ topLanguages.length }}</span>
+          </div>
+        </div>
+
+        <!-- Language Distribution -->
+        <div class="lang-distribution">
+          <div class="viz-title">语言分布</div>
+          <div class="lang-bars">
+            <div
+              v-for="lang in topLanguages"
+              :key="lang.name"
+              class="lang-bar-row"
+            >
+              <div class="lang-bar-label">
+                <span class="lang-dot" :style="{ background: langColor(lang.name) }"></span>
+                <span class="lang-name">{{ lang.name }}</span>
+                <span class="lang-count">{{ lang.count }} 个</span>
+              </div>
+              <div class="lang-bar-track">
+                <div
+                  class="lang-bar"
+                  :style="{ width: lang.percent + '%', background: langColor(lang.name) }"
+                ></div>
+              </div>
+              <span class="lang-percent">{{ lang.percent }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Top 3 Podium -->
       <div class="podium">
         <div
@@ -97,6 +155,7 @@
       <div class="rank-table">
         <div class="table-header">
           <div class="col-rank">Rank</div>
+          <div class="col-trend">趋势</div>
           <div class="col-repo">Repository</div>
           <div class="col-lang">Language</div>
           <div class="col-stat">Stars</div>
@@ -111,6 +170,16 @@
           class="table-row"
         >
           <div class="col-rank">{{ item.rank }}</div>
+          <div class="col-trend">
+            <span
+              v-if="getTrend(item)"
+              class="trend-badge"
+              :class="getTrend(item).dir"
+            >
+              {{ getTrend(item).arrow }}
+            </span>
+            <span v-else class="trend-none">—</span>
+          </div>
           <div class="col-repo">
             <img v-if="item.avatar_url" :src="item.avatar_url" :alt="item.full_name" class="row-avatar" />
             <div v-else class="row-avatar-placeholder"></div>
@@ -157,19 +226,13 @@ import useCart from '../stores/cart';
 
 const { isInCart, addToCart } = useCart();
 
-function handleAddToCart(item) {
-  const [author, ...nameParts] = (item.full_name || '').split('/');
-  const name = nameParts.join('/');
-  const res = addToCart({
-    name,
-    author,
-    description: item.description || '',
-    language: item.language || '',
-    stars: formatNumber(item.stargazers_count),
-    github_url: item.html_url || `https://github.com/${item.full_name}`,
-  });
-  ElMessage[res.added ? 'success' : 'info'](res.message);
-}
+const sinceOptions = [
+  { value: 'daily', label: '今日' },
+  { value: 'weekly', label: '每周' },
+  { value: 'monthly', label: '每月' },
+];
+
+const selectedSince = ref('weekly');
 
 const loading = ref(false);
 const error = ref('');
@@ -192,15 +255,13 @@ const maxStars = computed(() => {
   return items.value[0].stargazers_count || 1;
 });
 
+const totalStars = computed(() =>
+  items.value.reduce((s, i) => s + (i.stargazers_count || 0), 0)
+);
+
 const starBarWidth = (stars) => {
   const pct = (stars / maxStars.value) * 100;
   return pct > 100 ? '100%' : `${pct}%`;
-};
-
-const formatNumber = (num) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
-  return String(num);
 };
 
 const langColors = {
@@ -223,23 +284,107 @@ const langColors = {
   CSS: '#563d7c',
   Vue: '#41b883',
   Markdown: '#083fa1',
+  Unknown: '#999',
 };
 
 const langColor = (lang) => langColors[lang] || '#999';
+const totalForks = computed(() =>
+  items.value.reduce((s, i) => s + (i.forks_count || 0), 0)
+);
+const avgStars = computed(() =>
+  items.value.length ? Math.round(totalStars.value / items.value.length) : 0
+);
+
+const topLanguages = computed(() => {
+  const map = new Map();
+  for (const item of items.value) {
+    const l = item.language || 'Unknown';
+    map.set(l, (map.get(l) || 0) + 1);
+  }
+  const arr = [...map.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+  const totalCount = arr.reduce((s, x) => s + x.count, 0) || 1;
+  return arr.map((x) => ({
+    ...x,
+    percent: Math.round((x.count / totalCount) * 100),
+  }));
+});
+
+const formatNumber = (num) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+  return String(num);
+};
+
+function handleAddToCart(item) {
+  const [author, ...nameParts] = (item.full_name || '').split('/');
+  const name = nameParts.join('/');
+  const res = addToCart({
+    name,
+    author,
+    description: item.description || '',
+    language: item.language || '',
+    stars: formatNumber(item.stargazers_count),
+    github_url: item.html_url || `https://github.com/${item.full_name}`,
+  });
+  ElMessage[res.added ? 'success' : 'info'](res.message);
+}
+
+// 趋势对比：将当前周期项目与上一周期榜单对比，标记排名升降/新上榜
+const prevByFullName = ref(new Map());
+
+const getTrend = (item) => {
+  if (prevByFullName.value.size === 0) return null;
+  const prevRank = prevByFullName.value.get(item.full_name);
+  if (prevRank === undefined) {
+    return { dir: 'up', arrow: '↑ 新上榜' };
+  }
+  if (prevRank > item.rank) {
+    return { dir: 'up', arrow: `↑ ${prevRank - item.rank}` };
+  }
+  if (prevRank < item.rank) {
+    return { dir: 'down', arrow: `↓ ${item.rank - prevRank}` };
+  }
+  return { dir: 'same', arrow: '—' };
+};
 
 const fetchTrending = async () => {
   loading.value = true;
   error.value = '';
   try {
-    const res = await api.getTrending({
+    const params = {
       language: selectedLanguage.value || undefined,
-      since: 'weekly',
+      since: selectedSince.value,
       limit: 20,
-    });
+    };
+    const res = await api.getTrending(params);
     items.value = res.data.items || [];
     total.value = res.data.total || 0;
+
+    // 拉取相邻更短周期的榜单用于趋势对比
+    const prevSince = selectedSince.value === 'daily' ? null
+      : selectedSince.value === 'weekly' ? 'daily' : 'weekly';
+    if (prevSince) {
+      try {
+        const prevRes = await api.getTrending({
+          language: selectedLanguage.value || undefined,
+          since: prevSince,
+          limit: 20,
+        });
+        const map = new Map();
+        (prevRes.data.items || []).forEach((it, idx) => map.set(it.full_name, idx + 1));
+        prevByFullName.value = map;
+      } catch (e) {
+        prevByFullName.value = new Map();
+      }
+    } else {
+      prevByFullName.value = new Map();
+    }
   } catch (e) {
     error.value = e.response?.data?.detail || e.message || '获取排行榜数据失败';
+    prevByFullName.value = new Map();
   } finally {
     loading.value = false;
   }
@@ -268,6 +413,39 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--space-4);
+}
+
+.since-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+
+.since-tab {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  font-family: var(--geist-sans);
+  color: var(--fg-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.since-tab:hover {
+  color: var(--fg-primary);
+}
+
+.since-tab.active {
+  color: var(--fg-primary);
+  background: var(--bg-background);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  font-weight: var(--font-weight-medium);
 }
 
 .filter-select {
@@ -332,6 +510,117 @@ onMounted(() => {
 .refresh-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Visualization Panel */
+.viz-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-4);
+}
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.summary-label {
+  font-size: var(--font-size-xs);
+  color: var(--fg-tertiary);
+}
+
+.summary-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--fg-primary);
+  font-family: var(--geist-mono);
+}
+
+.lang-distribution {
+  padding: var(--space-5);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+
+.viz-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--fg-primary);
+  margin-bottom: var(--space-4);
+}
+
+.lang-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.lang-bar-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 48px;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.lang-bar-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.lang-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.lang-name {
+  font-size: var(--font-size-sm);
+  color: var(--fg-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lang-count {
+  font-size: var(--font-size-xs);
+  color: var(--fg-tertiary);
+  white-space: nowrap;
+}
+
+.lang-bar-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.lang-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width var(--transition-base);
+}
+
+.lang-percent {
+  font-size: var(--font-size-xs);
+  color: var(--fg-tertiary);
+  font-family: var(--geist-mono);
+  text-align: right;
 }
 
 /* Podium Top 3 */
@@ -514,7 +803,7 @@ onMounted(() => {
 
 .table-header {
   display: grid;
-  grid-template-columns: 70px minmax(520px, 1fr) 160px 200px 130px 130px 130px 180px;
+  grid-template-columns: 70px 120px minmax(440px, 1fr) 150px 180px 120px 120px 120px 170px;
   align-items: center;
   padding: var(--space-4) var(--space-5);
   background: var(--bg-canvas);
@@ -528,7 +817,7 @@ onMounted(() => {
 
 .table-row {
   display: grid;
-  grid-template-columns: 70px minmax(520px, 1fr) 160px 200px 130px 130px 130px 180px;
+  grid-template-columns: 70px 120px minmax(440px, 1fr) 150px 180px 120px 120px 120px 170px;
   align-items: center;
   padding: var(--space-4) var(--space-5);
   row-gap: var(--space-2);
@@ -550,6 +839,38 @@ onMounted(() => {
   font-weight: var(--font-weight-semibold);
   color: var(--fg-secondary);
   font-family: var(--geist-mono);
+}
+
+.col-trend {
+  display: flex;
+  align-items: center;
+}
+
+.trend-badge {
+  font-family: var(--geist-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.trend-badge.up {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.12);
+}
+
+.trend-badge.down {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.12);
+}
+
+.trend-badge.same {
+  color: var(--fg-tertiary);
+  background: var(--bg-secondary);
+}
+
+.trend-none {
+  color: var(--fg-tertiary);
 }
 
 .col-repo {
