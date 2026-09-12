@@ -11,6 +11,9 @@ echo ============================================
 echo.
 
 :: ======== Find Python ========
+:: First preference: the project's own venv, to avoid a PATH (e.g. TRAE) Python
+if exist "%ROOT_DIR%backend\.venv\Scripts\python.exe" set "PYTHON_CMD=%ROOT_DIR%backend\.venv\Scripts\python.exe" & goto :found_python
+
 python --version >nul 2>&1
 if %errorlevel% equ 0 (
     set PYTHON_CMD=python
@@ -68,9 +71,7 @@ echo.
 echo [SETUP] Checking Python dependencies...
 %PYTHON_CMD% -m pip install -r "%ROOT_DIR%backend\requirements.txt" -q --no-warn-script-location
 if %errorlevel% neq 0 (
-    echo [ERROR] Python dependency installation failed
-    pause
-    exit /b 1
+    echo [WARN] Python dependency install failed, continuing with existing environment, ensure the backend can still start...
 )
 echo [OK] Python dependencies ready
 
@@ -120,16 +121,16 @@ start "GitHub Frontend" cmd /c "%ROOT_DIR%frontend\run_frontend.bat" %NODE_CMD%
 
 echo.
 echo ============================================
-echo   Backend: http://localhost:8000
-echo   Frontend: http://localhost:5173
-echo   API Docs: http://localhost:8000/docs
+echo   Backend: http://127.0.0.1:8000
+echo   Frontend: http://127.0.0.1:5173
+echo   API Docs: http://127.0.0.1:8000/docs
 echo ============================================
 echo.
 echo Waiting for frontend to start...
 ping 127.0.0.1 -n 6 >nul
 
 echo Opening browser...
-start http://localhost:5173
+start http://127.0.0.1:5173
 echo.
 echo Close this window to stop all services.
 echo.

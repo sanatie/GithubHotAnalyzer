@@ -95,5 +95,33 @@ export default {
 
   clearChatHistory() {
     return request.delete('/v1/chat/history');
+  },
+
+  probeProject(author, repository) {
+    return request.get(`/v1/download/probe/${author}/${repository}`);
+  },
+
+  createDownload(data) {
+    return request.post('/v1/download', data);
+  },
+
+  getDownloadTasks(params) {
+    return request.get('/v1/download', { params });
+  },
+
+  cancelDownload(taskId) {
+    return request.post(`/v1/download/${taskId}/cancel`);
+  },
+
+  deleteDownload(taskId) {
+    return request.delete(`/v1/download/${taskId}`);
+  },
+
+  openDownloadDir(taskId) {
+    return request.post(`/v1/download/${taskId}/open-dir`);
+  },
+
+  getDefaultDownloadDir() {
+    return request.get('/v1/download/default-dir');
   }
 };

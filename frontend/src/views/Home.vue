@@ -53,6 +53,9 @@
           </div>
         </div>
         <div class="header-right">
+          <button class="btn-secondary" @click="handleAddToCart" :disabled="!currentCartItem">
+            {{ currentCartItem && isInCart(currentCartItem) ? '已在购物车' : '加入购物车' }}
+          </button>
           <button class="btn-secondary" @click="handleRefresh" :disabled="refreshing">
             {{ refreshing ? '刷新中...' : '重新分析' }}
           </button>
@@ -267,6 +270,9 @@ import { ref, computed, onMounted, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import api from '../api';
+import useCart from '../stores/cart';
+
+const { isInCart, addToCart } = useCart();
 
 const route = useRoute();
 
@@ -511,6 +517,26 @@ async function handleFavorite() {
   } catch (error) {
     ElMessage.error('操作失败');
   }
+}
+
+// 从报告解析出可供购物车使用的项目项
+const currentCartItem = computed(() => {
+  if (!report.value?.repo_full_name) return null;
+  const name = report.value.repo_full_name.split('/');
+  return {
+    author: name[0] || '',
+    name: name[1] || '',
+    description: formattedReport.value?.summary || report.value.description || '',
+    language: formattedReport.value?.language || '',
+    stars: formatNumber(formattedReport.value?.stars),
+    github_url: `https://github.com/${report.value.repo_full_name}`,
+  };
+});
+
+function handleAddToCart() {
+  if (!currentCartItem.value) return;
+  const res = addToCart(currentCartItem.value);
+  ElMessage[res.added ? 'success' : 'info'](res.message);
 }
 
 onMounted(() => {

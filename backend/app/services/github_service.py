@@ -50,14 +50,41 @@ def parse_repo_url(repo_url: str) -> tuple:
     raise ValueError(f"无法解析仓库地址: {repo_url}，请输入正确的 GitHub 仓库 URL")
 
 
-def _get_headers() -> Dict[str, str]:
-    """构造 GitHub API 请求头"""
+def urlparse_url_host(url: str) -> str:
+    """解析 URL 的 host（netloc 全小写），失败返回空串"""
+    from urllib.parse import urlparse
+    if not url:
+        return ""
+    return urlparse(url).netloc.lower()
+
+
+GITHUB_API_HOST = urlparse_url_host(GITHUB_API_BASE_URL) or "api.github.com"
+
+
+def _get_headers(url: str = "") -> Dict[str, str]:
+    """
+    构造 GitHub API 请求头。
+    仅当目标为 GitHub 官方 API 域名时才附加 Authorization，
+    防止 token 泄露给镜像/代理/第三方中转域名（如 ghfast.top 等）。
+    - url 为空：维持原有行为，按 GitHub API 处理
+    - url 非空且 host 非 api.github.com：不附 token 并告警
+    """
     headers = {
         "Accept": "application/vnd.github.v3+json",
         "User-Agent": "GitHub-Analyzer",
     }
-    if GITHUB_TOKEN:
+    if not GITHUB_TOKEN:
+        return headers
+
+    if not url:
         headers["Authorization"] = f"token {GITHUB_TOKEN}"
+        return headers
+
+    host = urlparse_url_host(url)
+    if host == GITHUB_API_HOST or host.endswith(f".{GITHUB_API_HOST}"):
+        headers["Authorization"] = f"token {GITHUB_TOKEN}"
+    else:
+        logger.warning(f"已阻止将 GitHub token 发送到非官方域名: {url}")
     return headers
 
 
@@ -73,6 +100,18 @@ async def _request_with_retry(url: str, method: str = "GET", **kwargs) -> httpx.
     返回:
         httpx.Response 对象
     """
+    # 纵深防御：带 Authorization 的请求仅允许发往 GitHub 官方 API 域名，
+    # 防止未来某调用点在镜像/第三方 URL 上误带 token 而泄露（与 _get_headers 双重保险）
+    _supplied_headers = kwargs.get("headers")
+    if isinstance(_supplied_headers, dict) and url:
+        _host = urlparse_url_host(url)
+        _official = bool(_host) and (
+            _host == GITHUB_API_HOST or _host.endswith(f".{GITHUB_API_HOST}")
+        )
+        if not _official and _supplied_headers.pop("Authorization", None):
+            logger.warning(f"已阻止将 Authorization 凭据发送到非官方域名: {url}")
+            kwargs["headers"] = _supplied_headers
+
     last_error = None
     for attempt in range(MAX_RETRIES):
         try:

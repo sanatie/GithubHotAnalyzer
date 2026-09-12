@@ -12,8 +12,10 @@ from app.api.settings import router as settings_router
 from app.api.trending import router as trending_router
 from app.api.chat import router as chat_router
 from app.api.chat_history import router as chat_history_router
+from app.api.downloader import router as downloader_router
 # 确保模型被导入以注册到数据库元数据
 import app.models.chat_history  # noqa: F401
+import app.models.download_task  # noqa: F401
 
 
 @asynccontextmanager
@@ -53,6 +55,7 @@ app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"]
 app.include_router(trending_router, prefix="/api/v1/trending", tags=["Trending"])
 app.include_router(chat_router, prefix="/api/v1/chat", tags=["Chat"])
 app.include_router(chat_history_router, prefix="/api/v1/chat", tags=["Chat"])
+app.include_router(downloader_router, prefix="/api/v1/download", tags=["Download"])
 
 
 @app.get("/api/v1/health")

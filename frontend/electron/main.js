@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
 
@@ -122,10 +122,21 @@ function createWindow() {
     return mainWindow ? mainWindow.isMaximized() : false;
   });
 
+  // 弹出系统目录选择器，返回选中的绝对路径（取消则返回 null）
+  ipcMain.handle('dialog:selectDirectory', async () => {
+    if (!mainWindow) return null;
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: '选择保存目录',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
+
   mainWindow.setMenuBarVisibility(false);
 
   if (!app.isPackaged) {
-    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.loadURL('http://127.0.0.1:5173');
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));

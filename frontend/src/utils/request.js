@@ -2,7 +2,7 @@ import axios from 'axios';
 import { ElMessage } from 'element-plus';
 
 const isElectron = window.navigator.userAgent.toLowerCase().includes('electron') || window.process?.versions?.electron;
-const baseURL = 'http://localhost:8000/api';
+const baseURL = 'http://127.0.0.1:8000/api';
 
 const service = axios.create({
   baseURL,

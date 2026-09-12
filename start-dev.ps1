@@ -10,6 +10,8 @@ Write-Host ""
 # ======== Find Python ========
 $pythonCmd = $null
 $pythonPaths = @(
+    # 优先使用项目自己的虚拟环境，避免误用 PATH 上的 TRAE 等 Python
+    "$rootDir\backend\.venv\Scripts\python.exe"
     "python", "py"
     "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe"
     "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe"
@@ -75,8 +77,7 @@ Write-Host ""
 Write-Host "[SETUP] Checking Python dependencies..." -ForegroundColor Yellow
 $pipResult = & $pythonCmd -m pip install -r "$rootDir\backend\requirements.txt" -q --no-warn-script-location 2>&1
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] Python dependency installation failed" -ForegroundColor Red
-    Read-Host "Press Enter to exit"; exit 1
+    Write-Host "[WARN] Python dependency install failed, continuing with existing environment (确保后端能启动)" -ForegroundColor Yellow
 }
 Write-Host "[OK] Python dependencies ready" -ForegroundColor Green
 

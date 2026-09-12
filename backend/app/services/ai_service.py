@@ -139,10 +139,15 @@ async def _request_with_retry(url: str, payload: Dict, headers: Dict) -> Dict:
     返回:
         解析后的响应数据
     """
+    _ok, _reason = config.ai_base_url_allowed(url)
+    if not _ok:
+        logger.error(f"AI base url 安全校验未通过: {_reason}")
+        raise ValueError(_reason)
+
     last_error = None
     for attempt in range(MAX_RETRIES):
         try:
-            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT, verify=False) as client:
+            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT, verify=config.AI_VERIFY_SSL) as client:
                 response = await client.post(url, headers=headers, json=payload)
                 response.raise_for_status()
                 return response.json()

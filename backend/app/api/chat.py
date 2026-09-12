@@ -64,6 +64,9 @@ async def _call_ai(prompt: str) -> dict:
         "Authorization": f"Bearer {config.AI_API_KEY}",
         "Content-Type": "application/json",
     }
+    _ok, _reason = config.ai_base_url_allowed(config.AI_API_BASE_URL)
+    if not _ok:
+        return {"error": f"AI API Base URL 未通过安全校验：{_reason}"}
     payload = {
         "model": config.AI_MODEL,
         "messages": [
@@ -74,7 +77,7 @@ async def _call_ai(prompt: str) -> dict:
         "max_tokens": 2000,
     }
 
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=30, verify=config.AI_VERIFY_SSL) as client:
         resp = await client.post(
             f"{config.AI_API_BASE_URL}/chat/completions",
             json=payload,

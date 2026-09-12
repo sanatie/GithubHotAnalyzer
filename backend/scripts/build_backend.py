@@ -27,6 +27,7 @@ def build():
     args = [
         sys.executable, '-m', 'PyInstaller',
         '--noconfirm',
+        '--onefile',
         '--log-level=WARN',
         '--name=backend',
         '--add-data', f'{BASE_DIR / "app"}{os.pathsep}app',

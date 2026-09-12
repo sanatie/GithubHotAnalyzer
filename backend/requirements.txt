@@ -10,7 +10,9 @@ uvicorn==0.24.0
 
 # ---------- 数据库 ----------
 # SQLAlchemy：Python ORM 框架，用于数据库操作
-SQLAlchemy==2.0.23
+# 2.0.31+ 正式支持 Python 3.13；2.0.23 在 3.13 下会因
+# TypingOnly.__init_subclass__ 断言报错（__static_attributes__/__firstlineno__）
+SQLAlchemy==2.0.36
 # aiosqlite：SQLite 异步驱动，支持 SQLAlchemy 异步模式
 aiosqlite==0.19.0
 # 注：SQLite 数据库引擎是 Python 内置模块（sqlite3），无需额外安装
@@ -46,3 +48,7 @@ PyYAML==6.0.1
 # ---------- 日志 ----------
 # loguru：优雅的 Python 日志库
 loguru==0.7.2
+
+# ---------- 测试 ----------
+# pytest：自动化测试框架，运行 backend/tests 下的用例
+pytest==8.2.2

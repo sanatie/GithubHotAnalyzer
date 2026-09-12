@@ -4,7 +4,7 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from loguru import logger
 
-from app.config import get_ai_config, update_ai_config
+from app.config import get_ai_config, update_ai_config, ai_base_url_allowed, AI_VERIFY_SSL
 from app.schemas.settings import (
     AIConfigUpdate,
     AIConfigResponse,
@@ -78,6 +78,13 @@ async def test_ai_connection(body: AIConfigTestRequest):
         logger.info("Using saved API key for test")
 
     url = f"{body.api_base_url.rstrip('/')}/chat/completions"
+    _ok, _reason = ai_base_url_allowed(body.api_base_url)
+    if not _ok:
+        return AIConfigTestResponse(
+            success=False,
+            message=f"API 地址未通过安全校验：{_reason}",
+            latency_ms=0,
+        )
     if any(ord(c) > 127 for c in api_key):
         return AIConfigTestResponse(
             success=False,
@@ -97,7 +104,7 @@ async def test_ai_connection(body: AIConfigTestRequest):
     start_time = time.time()
 
     try:
-        async with httpx.AsyncClient(timeout=15.0, verify=False) as client:
+        async with httpx.AsyncClient(timeout=15.0, verify=AI_VERIFY_SSL) as client:
             response = await client.post(url, headers=headers, json=payload)
             elapsed = int((time.time() - start_time) * 1000)
 

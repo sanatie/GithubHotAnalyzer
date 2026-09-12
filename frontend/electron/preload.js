@@ -7,5 +7,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     toggleMaximize: () => ipcRenderer.send('window:toggleMaximize'),
     close: () => ipcRenderer.send('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:isMaximized')
+  },
+  dialog: {
+    selectDirectory: () => ipcRenderer.invoke('dialog:selectDirectory')
   }
 });

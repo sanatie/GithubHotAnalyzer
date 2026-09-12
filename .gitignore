@@ -54,6 +54,11 @@ frontend/*.asar
 Thumbs.db
 
 # ====================
+# Local SSH assets (private key must never be committed)
+# ====================
+.ssh_assets/
+
+# ====================
 # Uploads
 # ====================
 .uploads/

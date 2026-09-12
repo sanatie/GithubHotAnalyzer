@@ -49,6 +49,15 @@
         >
           {{ h.length > 20 ? h.slice(0, 20) + '...' : h }}
         </el-tag>
+        <el-button
+          class="history-clear"
+          link
+          type="danger"
+          size="small"
+          @click="handleClearHistory"
+        >
+          清空
+        </el-button>
       </div>
     </div>
 
@@ -260,6 +269,12 @@ function handleClear() {
   injectionDetected.value = false;
 }
 
+function handleClearHistory() {
+  history.value = [];
+  localStorage.removeItem('chat_history');
+  ElMessage.info('已清空最近查询');
+}
+
 function handleQuickTag(tag) {
   const tagMap = {
     '前端框架': '推荐前端开发框架相关的 GitHub 项目',
@@ -366,6 +381,10 @@ async function copyName(name) {
 
 .quick-tag:hover, .history-tag:hover {
   transform: translateY(-1px);
+}
+
+.history-clear {
+  margin-left: auto;
 }
 
 /* 结果区 */
