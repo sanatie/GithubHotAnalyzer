@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -31,3 +31,10 @@ def get_db():
 def init_db():
     """初始化数据库，创建所有表"""
     Base.metadata.create_all(bind=engine)
+    # 兼容旧库：favorites 表新增 tags 列
+    # create_all 只会建"新表"，不会给已存在的表加列，需手动 ALTER TABLE（幂等）
+    with engine.begin() as conn:
+        cols = [row[1] for row in conn.execute(text("PRAGMA table_info(favorites)")).fetchall()]
+        # cols 非空说明表已存在；缺 tags 列则补
+        if cols and "tags" not in cols:
+            conn.execute(text("ALTER TABLE favorites ADD COLUMN tags VARCHAR(500) DEFAULT ''"))

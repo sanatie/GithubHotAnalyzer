@@ -18,6 +18,8 @@ class Favorite(Base):
     repo_full_name = Column(String(255), index=True, nullable=False)
     # 收藏备注
     note = Column(String(500), default="")
+    # 收藏标签（逗号分隔，如 "web,ai"）
+    tags = Column(String(500), default="")
     # 收藏时间
     created_at = Column(DateTime, default=datetime.utcnow)
 

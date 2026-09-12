@@ -31,10 +31,13 @@ def get_ai_config_endpoint():
     """
     logger.info("Fetching AI configuration")
     cfg = get_ai_config()
+    # 无 Key 时分析接口会回退模拟数据；标记可用性供前端置灰 AI 分析
+    ai_available = bool((cfg["api_key"] or "").strip()) and bool((cfg["api_base_url"] or "").strip())
     return AIConfigResponse(
         api_key_masked=_mask_api_key(cfg["api_key"]),
         api_base_url=cfg["api_base_url"],
         model=cfg["model"],
+        ai_available=ai_available,
     )
 
 

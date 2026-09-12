@@ -13,6 +13,7 @@ class AIConfigResponse(BaseModel):
     api_key_masked: str = Field(..., description="脱敏后的 API Key")
     api_base_url: str = Field(..., description="AI API 基础地址")
     model: str = Field(..., description="AI 模型名称")
+    ai_available: bool = Field(True, description="AI 是否可用（Key 与 base url 均已配置）")
 
 
 class AIConfigTestRequest(BaseModel):
