@@ -53,6 +53,10 @@ export default {
     return request.post('/v1/favorites', data);
   },
 
+  batchAddFavorites(data) {
+    return request.post('/v1/favorites/batch', data);
+  },
+
   deleteFavorite(favId) {
     return request.delete(`/v1/favorites/${favId}`);
   },

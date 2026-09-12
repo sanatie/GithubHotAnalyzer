@@ -457,41 +457,42 @@ async function handleCopy(item) {
 function handleAnalyze(item) {
   router.push({
     name: 'Home',
-    query: { repo: `${item.author}/${item.name}` },
+    query: { url: `https://github.com/${item.author}/${item.name}` },
   });
 }
 
 async function handleBatchCollection() {
   if (selectedAuthors.value.length === 0) return;
-  let successCount = 0;
-  let failCount = 0;
-  for (const author of selectedAuthors.value) {
-    const item = cartItems.value.find(i => `${i.author}/${i.name}` === author);
-    if (!item) continue;
-    try {
-      await api.addFavorite({
-        repository_id: null,
-        name: item.name,
-        author: item.author,
-        html_url: item.github_url,
-        description: item.description,
-        language: item.language,
-        stargazers_count: 0,
-        note: '来自推荐购物车',
-        tags: [item.language, '购物车'],
-      });
-      successCount++;
-    } catch (e) {
-      failCount++;
+  const items = selectedAuthors.value
+    .map(author => cartItems.value.find(i => `${i.author}/${i.name}` === author))
+    .filter(Boolean)
+    .map(item => ({
+      author: item.author,
+      name: item.name,
+      html_url: item.github_url,
+      description: item.description,
+      language: item.language,
+      stargazers_count: 0,
+      note: '来自推荐购物车',
+      tags: item.language ? [item.language, '购物车'] : ['购物车'],
+    }));
+  try {
+    const res = await api.batchAddFavorites({ items });
+    const data = res.data || {};
+    const successCount = data.success_count || 0;
+    const alreadyCount = data.already_count || 0;
+    const failedCount = data.failed_count || 0;
+
+    if (failedCount > 0) {
+      ElMessage.warning(`收藏成功 ${successCount} 个，${alreadyCount} 个已存在，失败 ${failedCount} 个`);
+    } else if (alreadyCount > 0) {
+      ElMessage.success(`已收藏 ${successCount} 个，${alreadyCount} 个之前已收藏`);
+    } else {
+      ElMessage.success(`已收藏 ${successCount} 个项目`);
     }
-  }
-  const msg = failCount > 0
-    ? `收藏成功 ${successCount} 个，失败 ${failCount} 个`
-    : `已收藏 ${successCount} 个项目`;
-  if (failCount > 0) {
-    ElMessage.warning(msg);
-  } else {
-    ElMessage.success(msg);
+  } catch (error) {
+    console.error(error);
+    ElMessage.error('批量收藏失败，请检查后端服务');
   }
 }
 

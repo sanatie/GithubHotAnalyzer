@@ -6,13 +6,21 @@
         <p class="page-desc">共 {{ total }} 个收藏仓库</p>
       </div>
       <div class="header-right">
-        <div class="search-wrap">
+        <div class="filter-bar">
           <input
-            v-model="keyword"
-            class="search-input"
-            placeholder="搜索收藏..."
-            @input="handleSearchInput"
+            v-model="tagKeyword"
+            class="search-input tag-filter"
+            placeholder="按标签筛选..."
+            @input="handleTagInput"
           />
+          <div class="search-wrap">
+            <input
+              v-model="keyword"
+              class="search-input"
+              placeholder="搜索收藏..."
+              @input="handleSearchInput"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -23,7 +31,7 @@
     </div>
 
     <div v-else-if="favorites.length === 0" class="empty-state">
-      <p class="empty-text">{{ keyword ? '未找到匹配的收藏' : '暂无收藏的仓库' }}</p>
+      <p class="empty-text">{{ (keyword || tagKeyword) ? '未找到匹配的收藏' : '暂无收藏的仓库' }}</p>
       <button class="btn-primary" @click="$router.push('/')">去探索仓库</button>
     </div>
 
@@ -55,9 +63,21 @@
         <p v-if="item.repository?.description" class="repo-desc">
           {{ item.repository.description }}
         </p>
+        <div v-if="getTags(item).length" class="tag-row">
+          <button
+            v-for="t in getTags(item)"
+            :key="t"
+            class="tag-chip"
+            :title="`点击按「${t}」筛选`"
+            @click="filterByTag(t)"
+          >
+            {{ t }}
+          </button>
+        </div>
         <div class="card-footer">
           <span class="fav-time">收藏于 {{ formatDate(item.created_at) }}</span>
           <div class="card-actions">
+            <button class="link-btn" @click="editTags(item)">标签</button>
             <button class="link-btn" @click="goDetail(item)">查看报告</button>
             <button class="link-btn danger" @click="handleUnfavorite(item.id)">取消收藏</button>
           </div>
@@ -91,7 +111,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import api from '../api';
 
 const router = useRouter();
@@ -99,11 +119,13 @@ const router = useRouter();
 const favorites = ref([]);
 const loading = ref(false);
 const keyword = ref('');
+const tagKeyword = ref('');
 const page = ref(1);
 const pageSize = ref(12);
 const total = ref(0);
 
 let searchTimer = null;
+let tagTimer = null;
 
 const totalPages = computed(() => {
   return Math.ceil(total.value / pageSize.value) || 1;
@@ -112,6 +134,12 @@ const totalPages = computed(() => {
 function getItemInitial(item) {
   const name = item.repo_full_name || item.repository?.full_name || '?';
   return name.charAt(0).toUpperCase();
+}
+
+// 把后端存成的逗号分隔串拆成标签数组，并去空去重
+function getTags(item) {
+  const raw = item.tags || '';
+  return [...new Set(raw.split(',').map((s) => s.trim()).filter(Boolean))];
 }
 
 function formatNumber(num) {
@@ -142,6 +170,7 @@ async function fetchFavorites() {
       page: page.value,
       page_size: pageSize.value,
       keyword: keyword.value || undefined,
+      tag: tagKeyword.value ? tagKeyword.value.trim() : undefined,
     });
     if (res.data) {
       favorites.value = res.data.items || res.data || [];
@@ -188,6 +217,44 @@ function handleSearchInput() {
     page.value = 1;
     fetchFavorites();
   }, 300);
+}
+
+function handleTagInput() {
+  if (tagTimer) clearTimeout(tagTimer);
+  tagTimer = setTimeout(() => {
+    page.value = 1;
+    fetchFavorites();
+  }, 300);
+}
+
+function filterByTag(t) {
+  tagKeyword.value = t;
+  page.value = 1;
+  fetchFavorites();
+}
+
+async function editTags(item) {
+  const current = (item.tags || '').trim();
+  try {
+    const { value } = await ElMessageBox.prompt(
+      '用逗号分隔多个标签，例如：web,ai',
+      '编辑标签',
+      {
+        inputValue: current,
+        inputPlaceholder: 'web,ai,工具',
+        confirmButtonText: '保存',
+        cancelButtonText: '取消',
+      }
+    );
+    await api.updateFavorite(item.id, { tags: (value || '').trim() });
+    ElMessage.success('标签已更新');
+    fetchFavorites();
+  } catch (error) {
+    // 用户取消：error 为 'cancel'，忽略；其余错误打印
+    if (error !== 'cancel' && error?.action !== 'cancel') {
+      console.error(error);
+    }
+  }
 }
 
 function handleSizeChange(e) {
@@ -238,6 +305,40 @@ onMounted(() => {
 
 .search-wrap {
   position: relative;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tag-filter {
+  width: 180px;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tag-chip {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  cursor: pointer;
+  font-family: var(--geist-mono);
+  transition: all var(--transition-fast);
+  line-height: 1.6;
+}
+
+.tag-chip:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
 }
 
 .search-input {
@@ -519,6 +620,15 @@ onMounted(() => {
   .page-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tag-filter {
+    width: 100%;
   }
 
   .search-input {
