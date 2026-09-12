@@ -67,3 +67,23 @@ Thumbs.db
 # Runtime downloads (built-in downloader output; must not be committed)
 # ====================
 downloads/
+
+# ====================
+# Agent / assistant instructions (local-only，不入库)
+# ====================
+AGENTS.md
+
+# ====================
+# Credentials / secrets / keys / logs (guard for TLS infra & future)
+# ====================
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+secrets.json
+credentials.json
+*.htpasswd
+*.log
