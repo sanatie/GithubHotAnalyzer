@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="GitHub 热榜项目分析器 API",
     description="AI 驱动的 GitHub 项目分析工具，输入仓库地址自动生成中文分析报告",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
 )
 

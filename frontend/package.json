@@ -1,6 +1,6 @@
 {
   "name": "github-analyzer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "GitHub仓库AI智能分析器",
   "main": "electron/main.js",
   "scripts": {
