@@ -1,6 +1,7 @@
 import base64
 import re
 from typing import Dict, List, Optional
+from urllib.parse import quote
 
 import httpx
 from loguru import logger
@@ -142,7 +143,7 @@ async def fetch_repository(owner: str, repo: str) -> Dict:
     返回:
         仓库信息字典
     """
-    url = f"{GITHUB_API_BASE_URL}/repos/{owner}/{repo}"
+    url = f"{GITHUB_API_BASE_URL}/repos/{quote(owner, safe='')}/{quote(repo, safe='')}"
     logger.info(f"获取仓库信息: {owner}/{repo}")
 
     response = await _request_with_retry(url, headers=_get_headers())
@@ -162,7 +163,7 @@ async def fetch_readme(owner: str, repo: str) -> str:
     返回:
         README 文本内容（解码后）
     """
-    url = f"{GITHUB_API_BASE_URL}/repos/{owner}/{repo}/readme"
+    url = f"{GITHUB_API_BASE_URL}/repos/{quote(owner, safe='')}/{quote(repo, safe='')}/readme"
     logger.info(f"获取 README: {owner}/{repo}")
 
     try:
@@ -236,7 +237,7 @@ async def fetch_file_tree(owner: str, repo: str, branch: str = None) -> List[Dic
         repo_info = await fetch_repository(owner, repo)
         branch = repo_info.get("default_branch", "main")
 
-    url = f"{GITHUB_API_BASE_URL}/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
+    url = f"{GITHUB_API_BASE_URL}/repos/{quote(owner, safe='')}/{quote(repo, safe='')}/git/trees/{branch}?recursive=1"
     logger.info(f"获取文件树: {owner}/{repo}, branch={branch}")
 
     try:
@@ -295,7 +296,7 @@ async def fetch_file_content(owner: str, repo: str, filepath: str, ref: str = No
     返回:
         文件文本内容（解码后），失败时返回空字符串
     """
-    url = f"{GITHUB_API_BASE_URL}/repos/{owner}/{repo}/contents/{filepath}"
+    url = f"{GITHUB_API_BASE_URL}/repos/{quote(owner, safe='')}/{quote(repo, safe='')}/contents/{filepath}"
     params = {}
     if ref:
         params["ref"] = ref
