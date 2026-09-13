@@ -118,6 +118,11 @@ async def _request_with_retry(url: str, method: str = "GET", **kwargs) -> httpx.
         try:
             async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT, verify=GITHUB_VERIFY_SSL, follow_redirects=True) as client:
                 response = await client.request(method, url, **kwargs)
+                # 兜底：即使 httpx 跨域会剥离 Authorization，也拒绝使用被重定向到非官方域名的响应
+                _final_host = urlparse_url_host(str(response.url))
+                if _final_host and _final_host != GITHUB_API_HOST and not _final_host.endswith(f".{GITHUB_API_HOST}"):
+                    logger.warning(f"已阻止使用重定向到非官方域名的响应: {response.url}")
+                    raise httpx.HTTPError(f"重定向到非官方域名: {response.url}")
                 # GitHub API 限流时返回 403
                 if response.status_code == 403:
                     logger.warning(f"GitHub API 限流，尝试次数: {attempt + 1}/{MAX_RETRIES}")
