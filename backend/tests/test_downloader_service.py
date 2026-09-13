@@ -72,7 +72,6 @@ def test_normalize_returns_unchanged_for_other_urls():
 
 @pytest.mark.parametrize("url", [
     "https://github.com/o/r",
-    "http://github.com/o/r",
     "https://codeload.github.com/o/r/zip/refs/heads/main",
     "https://raw.githubusercontent.com/o/r/main/README.md",
     "https://api.github.com/repos/o/r",
@@ -85,6 +84,7 @@ def test_sanitize_allows_github_domains(url):
 
 @pytest.mark.parametrize("url", [
     "https://example.com/o/r",
+    "http://github.com/o/r",  # 明文 HTTP 一律拒绝
     "ftp://github.com/o/r",
     "javascript:alert(1)",
     "https://ghfast.top/https://github.com/o/r",

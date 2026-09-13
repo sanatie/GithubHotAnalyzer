@@ -65,7 +65,6 @@ def _sanitize_url(url: str) -> str:
         return ""
     allowed_prefixes = (
         "https://github.com/",
-        "http://github.com/",
         "https://codeload.github.com/",
         "https://raw.githubusercontent.com/",
         "https://api.github.com/",
@@ -166,8 +165,7 @@ def _build_ssh443_url(url: str):
 
 
 def _locate_ssh_private_key() -> str:
-    """定位 SSH 私钥：优先系统 ~/.ssh（标准、安全），其次环境变量 GITHUB_SSH_KEY，
-    最后项目 .ssh_assets（仅作兜底）。"""
+    """定位 SSH 私钥：优先系统 ~/.ssh（标准、安全），其次环境变量 GITHUB_SSH_KEY。"""
     home_ssh = Path.home() / ".ssh"
     for cand in (home_ssh / "id_ed25519", home_ssh / "id_rsa", home_ssh / "id_ecdsa"):
         if os.path.exists(cand):
@@ -175,8 +173,7 @@ def _locate_ssh_private_key() -> str:
     p = os.getenv("GITHUB_SSH_KEY", "").strip()
     if p and os.path.exists(p):
         return p
-    cand = BASE_DIR.parent / ".ssh_assets" / "id_ed25519"
-    return str(cand) if os.path.exists(cand) else ""
+    return ""
 
 
 def _ssh_clone_command() -> str:
