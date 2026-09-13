@@ -16,7 +16,7 @@ from loguru import logger
 from app.database import SessionLocal
 from app.models.download_task import DownloadTask
 from app.services.github_service import _get_headers
-from app.config import GITHUB_API_BASE_URL, BASE_DIR, GITHUB_TOKEN
+from app.config import GITHUB_API_BASE_URL, BASE_DIR, GITHUB_TOKEN, GITHUB_VERIFY_SSL
 
 # 默认下载目录（项目根目录下的 downloads，与用户指定的桌面路径一致）
 DEFAULT_DOWNLOAD_DIR = BASE_DIR.parent / "downloads"
@@ -218,7 +218,7 @@ async def probe_project(author: str, repo: str) -> dict:
     # 检查 README
     readme_url = build_readme_url(author, repo, info["default_branch"])
     try:
-        async with httpx.AsyncClient(timeout=10, verify=False, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=10, verify=GITHUB_VERIFY_SSL, follow_redirects=True) as client:
             r = await client.get(readme_url)
             if r.status_code == 200:
                 info["has_readme"] = True
@@ -231,7 +231,7 @@ async def probe_project(author: str, repo: str) -> dict:
         url = f"{GITHUB_API_BASE_URL}/repos/{author}/{repo}/releases/latest"
         headers = _get_headers(url)
         headers["Accept"] = "application/vnd.github.v3+json"
-        async with httpx.AsyncClient(timeout=15, verify=False, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=15, verify=GITHUB_VERIFY_SSL, follow_redirects=True) as client:
             r = await client.get(url, headers=headers)
             if r.status_code == 200:
                 data = r.json()
@@ -276,7 +276,7 @@ async def download_file(task: DownloadTask):
     try:
         # Accept-Encoding: identity 禁用传输层压缩，保证读到的字节数与 content-length 一致，
         # 否则 httpx 自动解压会导致 downloaded > total_size、进度超过 100%
-        async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=30.0), verify=False, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=30.0), verify=GITHUB_VERIFY_SSL, follow_redirects=True) as client:
             async with client.stream(
                 "GET", url,
                 headers={"User-Agent": "Mozilla/5.0", "Accept-Encoding": "identity"},

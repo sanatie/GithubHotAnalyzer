@@ -209,6 +209,7 @@ npm run electron:dev   # 需先启动后端
 | `AI_API_BASE_URL` | 兼容 OpenAI 协议的接口地址 |
 | `AI_MODEL` | 模型名，如 `qwen-plus` / `deepseek-chat` |
 | `GITHUB_TOKEN` | 可选，GitHub Token，提高 API 限流配额 |
+| `GITHUB_VERIFY_SSL` | 可选，默认 `true`，GitHub API 及下载请求是否校验 TLS 证书 |
 | `GITHUB_CLONE_MIRROR` | 可选，git clone 默认镜像前缀 |
 | `GITHUB_CLONE_MIRRORS` | 可选，逗号分隔的镜像回退列表（直连失败后依次尝试） |
 | `AI_VERIFY_SSL` | 可选，默认 `true`，AI 请求是否校验 TLS 证书 |
@@ -353,6 +354,7 @@ python -m pytest tests -q
 
 - **`_get_headers(url)` 白名单守卫**：仅在请求目标为 GitHub 官方 API（`api.github.com`，含子域）时才附加 `Authorization: token ...`；目标为其它域名时拒绝附加并告警。
 - **`_request_with_retry` 请求层兜底**：无论调用方是否显式传 url，只要请求 host 非官方，就剥离 `Authorization` 并告警——覆盖现在和未来的所有调用点。
+- **`GITHUB_VERIFY_SSL`**（默认开启）：GitHub API 及下载请求校验 TLS 证书，防止携带 Token 的请求被劫持、下载内容被中间人篡改。
 - 下载路径（ZIP / README / Release / git clone）使用**不带 token** 的自定义 header 或 git/SSH 通道，绝不携带 GitHub Token 到 codeload 或第三方镜像。
 
 ### 2. AI API Key —— 官方域名白名单 + TLS 校验

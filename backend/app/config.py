@@ -40,6 +40,8 @@ DATABASE_URL = f"sqlite:///{BASE_DIR / 'data' / 'github_analyzer.db'}"
 
 GITHUB_API_BASE_URL = "https://api.github.com"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+# GitHub 请求安全开关：是否校验 TLS 证书，默认开启（防止 token 被中间人窃取、下载内容被篡改）
+GITHUB_VERIFY_SSL = os.getenv("GITHUB_VERIFY_SSL", "true").strip().lower() in ("1", "true", "yes", "on")
 
 AI_API_KEY = os.getenv("AI_API_KEY", "")
 AI_API_BASE_URL = os.getenv("AI_API_BASE_URL", "")

@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 import httpx
 from loguru import logger
 
-from app.config import GITHUB_API_BASE_URL, GITHUB_TOKEN
+from app.config import GITHUB_API_BASE_URL, GITHUB_TOKEN, GITHUB_VERIFY_SSL
 
 
 # 请求超时配置
@@ -115,7 +115,7 @@ async def _request_with_retry(url: str, method: str = "GET", **kwargs) -> httpx.
     last_error = None
     for attempt in range(MAX_RETRIES):
         try:
-            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT, verify=False, follow_redirects=True) as client:
+            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT, verify=GITHUB_VERIFY_SSL, follow_redirects=True) as client:
                 response = await client.request(method, url, **kwargs)
                 # GitHub API 限流时返回 403
                 if response.status_code == 403:
